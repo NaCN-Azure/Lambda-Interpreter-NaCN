@@ -10,8 +10,7 @@ public class Lexer{
         source = s;
         getToken();
     }
-    //get next token
-    private void getToken(){
+    private TokenType getToken(){ //得到下一个token
         char nextChar='\0';
         do{
             nextChar=continueChar();
@@ -33,10 +32,10 @@ public class Lexer{
                 tokenvalue=lcid_line;
             }
         }
+        return token;
     }
-    // get next char
-    private char continueChar(){
-        char result='\0';
+    private char continueChar(){ //得到下一个char
+        char result;
         if(index>=source.length()){
             result='\0';
         }
@@ -47,16 +46,16 @@ public class Lexer{
         return result;
     }
     //check token == t
-    public boolean next(TokenType t){
+    public boolean next(TokenType t){//检查下一个token是否是t类型，如果是返回真
         return t==token;
     }
     //assert matching the token type, and move next token
-    public void match(TokenType t){
+    public void match(TokenType t){//如果下一个token是t，得到下一个token
         if(next(t)){getToken();}
         //write your code here
     }
     //skip token  and move next token
-    public boolean skip(TokenType t){
+    public boolean skip(TokenType t){//如果下一个token是t，那么跳过并返回真
         if(next(t)){
             getToken();
             return true;
@@ -64,7 +63,7 @@ public class Lexer{
         return false;
         //write your code here
     }
-    private void translate() {
+    private void translate() {//打印该source，方便测试
         while (index < source.length()) {
             getToken();
             if (!next(null)) {
@@ -74,7 +73,7 @@ public class Lexer{
         System.out.println(TokenType.EOF.toString());
     }
     public static void main(String[] args) {
-        String test="(\\f.\\x.x)";
+        String test="(\\f.\\x.xxxx)";
         Lexer lexer=new Lexer(test);
         lexer.translate();
     }
