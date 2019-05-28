@@ -32,6 +32,7 @@ public class Lexer{
                 tokenvalue=lcid_line;
             }
         }
+        System.out.println(token.toString());
         return token;
     }
     private char continueChar(){ //得到下一个char
@@ -52,29 +53,25 @@ public class Lexer{
     //assert matching the token type, and move next token
     public void match(TokenType t){//如果下一个token是t，得到下一个token
         if(next(t)){nextToken();}
-        //write your code here
     }
     //skip token  and move next token
     public boolean skip(TokenType t){//如果下一个token是t，那么跳过并返回真
-        if(next(t)){
+        if(t==token){
             nextToken();
             return true;
         }
-        return false;
+            return false;
         //write your code here
     }
     private void translate() {//打印该source，方便测试
         while (index < source.length()) {
+            if (!next(null)) { System.out.println(token.toString());}
             nextToken();
-            if (!next(null)) {
-                System.out.println(token.toString());
-            }
         }
         System.out.println(TokenType.EOF.toString());
     }
     public static void main(String[] args) {
         String test="(\\f.\\x.xxxx)";
         Lexer lexer=new Lexer(test);
-        lexer.translate();
     }
 }

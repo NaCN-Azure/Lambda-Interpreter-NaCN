@@ -11,7 +11,6 @@ public class Identifier extends AST {
         value = v;
     }
     public String toString(){
-
-        return "";
+        return value;
     }
 }

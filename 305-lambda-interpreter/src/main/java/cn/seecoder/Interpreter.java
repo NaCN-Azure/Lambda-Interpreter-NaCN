@@ -122,8 +122,6 @@ public class Interpreter {
 
     public static void main(String[] args) {
         // write your code here
-
-
         String[] sources = {
                 ZERO,//0
                 ONE,//1
@@ -158,25 +156,14 @@ public class Interpreter {
                 app(MIN, ONE, TWO),//30
                 app(MIN, FOUR, TWO),//31
         };
-
         for(int i=0 ; i<sources.length; i++) {
-
-
             String source = sources[i];
-
             System.out.println(i+":"+source);
-
             Lexer lexer = new Lexer(source);
-
             Parser parser = new Parser(lexer);
-
             Interpreter interpreter = new Interpreter(parser);
-
             AST result = interpreter.eval();
-
             System.out.println(i+":" + result.toString());
-
         }
-
     }
 }
