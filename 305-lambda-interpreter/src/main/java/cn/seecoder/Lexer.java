@@ -64,12 +64,18 @@ public class Lexer{
         return false;
         //write your code here
     }
-    public static void main(String[] args) {
-        Lexer l=new Lexer("(\\x.\\y.xxxx)(\\x.x)(\\y.y)");
-        for(int i=0;i<=21;i++) {
-            System.out.println(l.token+l.tokenvalue);
-            l.getToken();
+    private void translate() {
+        while (index < source.length()) {
+            getToken();
+            if (!next(null)) {
+                System.out.println(token.toString());
+            }
         }
+        System.out.println(TokenType.EOF.toString());
     }
-
+    public static void main(String[] args) {
+        String test="(\\f.\\x.x)";
+        Lexer lexer=new Lexer(test);
+        lexer.translate();
+    }
 }
