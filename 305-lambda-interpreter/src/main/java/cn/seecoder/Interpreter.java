@@ -7,7 +7,7 @@ public class Interpreter {
     public Interpreter(Parser p){
         parser = p;
         astAfterParser = p.parse();
-        //System.out.println("After parser:"+astAfterParser.toString());
+        //*System.out.println("After parser:"+astAfterParser.toString());
     }
 
 
