@@ -8,9 +8,9 @@ public class Lexer{
     public Lexer(String s){
         index = 0;
         source = s;
-        getToken();
+        nextToken();
     }
-    private TokenType getToken(){ //得到下一个token
+    private TokenType nextToken(){ //得到下一个token
         char nextChar='\0';
         do{
             nextChar=continueChar();
@@ -51,13 +51,13 @@ public class Lexer{
     }
     //assert matching the token type, and move next token
     public void match(TokenType t){//如果下一个token是t，得到下一个token
-        if(next(t)){getToken();}
+        if(next(t)){nextToken();}
         //write your code here
     }
     //skip token  and move next token
     public boolean skip(TokenType t){//如果下一个token是t，那么跳过并返回真
         if(next(t)){
-            getToken();
+            nextToken();
             return true;
         }
         return false;
@@ -65,7 +65,7 @@ public class Lexer{
     }
     private void translate() {//打印该source，方便测试
         while (index < source.length()) {
-            getToken();
+            nextToken();
             if (!next(null)) {
                 System.out.println(token.toString());
             }
