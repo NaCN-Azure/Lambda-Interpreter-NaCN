@@ -59,5 +59,6 @@ public class Parser {
         Lexer lexer = new Lexer("(\\x.\\y.(x y)x)(\\x.x)(\\y.y)");
         Parser parser = new Parser(lexer);
         AST ast = parser.parse();
+        System.out.println(ast);
     }
 }

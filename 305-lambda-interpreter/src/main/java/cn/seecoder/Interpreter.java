@@ -1,16 +1,12 @@
 package cn.seecoder;
-
 public class Interpreter {
     Parser parser;
     AST astAfterParser;
-
     public Interpreter(Parser p){
         parser = p;
         astAfterParser = p.parse();
         //*System.out.println("After parser:"+astAfterParser.toString());
     }
-
-
     private  boolean isAbstraction(AST ast){
         return ast instanceof Abstraction;
     }
@@ -20,72 +16,122 @@ public class Interpreter {
     private  boolean isIdentifier(AST ast){
         return ast instanceof Identifier;
     }
-
     public AST eval(){
-
         return evalAST(astAfterParser);
     }
-
     private   AST evalAST(AST ast){
         //write your code here
-
-        return null;
-
+        while (true) {
+            if (ast instanceof Application) {
+                if (((Application) ast).lhs instanceof Application) {
+                    System.out.println(("eval left:" + ((Application) ast).lhs));
+                    ((Application) ast).lhs = evalAST(((Application) ast).lhs);
+                    if (((Application) ast).lhs instanceof Application) {
+                        return ast;
+                    }
+                    System.out.println("eval right:" + ast);
+                } else if (((Application)ast).lhs instanceof Abstraction) {
+                    if (((Application) ast).rhs instanceof Application) {
+                        ((Application) ast).rhs = evalAST((Application) ((Application) ast).rhs);
+                        System.out.println("eval right" + ast);
+                    }
+                    System.out.println("substi" + ast);
+                    ast = substitute(((Abstraction) ((Application) ast).lhs).body,((Application) ast).rhs);//ast不确定问题
+                    System.out.println("substi after" + ast);
+                } else {
+                    if (((Application) ast).rhs instanceof Application) {
+                        ((Application) ast).rhs = evalAST(((Application) ast).rhs);
+                        System.out.println("eval right" + ast);
+                        return ast;
+                    } else if (((Application) ast).rhs instanceof Abstraction) {
+                        ((Application) ast).rhs = evalAST(((Application) ast).rhs);
+                        System.out.println("eval right"+ast);
+                        return ast;
+                    } else {
+                        return ast;
+                    }
+                }
+            } else if (ast instanceof Abstraction) {
+                Abstraction abs = ((Abstraction)ast);
+                abs.body = evalAST(((Abstraction)abs).body);
+                System.out.println("abstraction" + ast);
+                return ast;
+            }else if(ast instanceof Identifier){
+                System.out.println("Identifier"+ast);
+                return ast;
+            }else{
+                System.out.println("Bad!");
+            }
+        }
     }
     private AST substitute(AST node,AST value){
-
         return shift(-1,subst(node,shift(1,value,0),0),0);
-
-
-
     }
-
     /**
      *  value替换node节点中的变量：
      *  如果节点是Applation，分别对左右树替换；
      *  如果node节点是abstraction，替入node.body时深度得+1；
      *  如果node是identifier，则替换De Bruijn index值等于depth的identifier（替换之后value的值加深depth）
-
      *@param value 替换成为的value
      *@param node 被替换的整个节点
-     *@param depth 外围的深度
-
-             
+     *@param depth 外围的深度       
      *@return AST
      *@exception  (方法有异常的话加)
-
-
      */
     private AST subst(AST node, AST value, int depth){
-        //write your code here
-
+        if(node instanceof Application){
+            return new Application(
+                    subst(((Application) node).lhs,value,depth),
+                    subst(((Application) node).rhs,value,depth)
+            );
+        }else if(node instanceof Abstraction){
+            return new Abstraction(
+                    (((Abstraction)node).param),
+                    subst(((Abstraction)node).body,value,depth+1)
+            );
+        }else if(node instanceof Identifier){
+            if(depth == ((Identifier)node).getInt()){
+                return shift(depth,value,0);
+            }else{
+                return node;
+            }
+        }
         return null;
 
     }
-
     /**
-
      *  De Bruijn index值位移
      *  如果节点是Applation，分别对左右树位移；
      *  如果node节点是abstraction，新的body等于旧node.body位移by（from得+1）；
      *  如果node是identifier，则新的identifier的De Bruijn index值如果大于等于from则加by，否则加0（超出内层的范围的外层变量才要shift by位）.
-
         *@param by 位移的距离
      *@param node 位移的节点
-     *@param from 内层的深度
-
-             
+     *@param from 内层的深度   
      *@return AST
      *@exception  (方法有异常的话加)
-
-
      */
-
     private AST shift(int by, AST node,int from){
         //write your code here
-
+        if(node instanceof Application){
+            return new Application(
+                    shift(by,((Application) node).lhs,from),
+                    shift(by,((Application) node).rhs,from)
+            );
+        }else if (node instanceof Abstraction){
+            return new Abstraction(
+                    (Identifier)((Abstraction) node).param,
+                    shift(by,((Abstraction)node).body,from+1)
+            );
+        }else if(node instanceof Identifier){
+            int temp;
+            temp = ((Identifier) node).getInt();
+            if(temp == -2){
+                return node;
+            }else{
+                return new Identifier("".toString(),String.valueOf(temp+(temp>=from?by:0)));
+            }
+        }
         return null;
-
     }
     static String ZERO = "(\\f.\\x.x)";
     static String SUCC = "(\\n.\\f.\\x.f (n f x))";
@@ -109,7 +155,6 @@ public class Interpreter {
     static String EQ = "(\\m.\\n."+AND+"("+LEQ+"m n)("+LEQ+"n m))";
     static String MAX = "(\\m.\\n."+IF+"("+LEQ+" m n)n m)";
     static String MIN = "(\\m.\\n."+IF+"("+LEQ+" m n)m n)";
-
     private static String app(String func, String x){
         return "(" + func + x + ")";
     }
@@ -119,7 +164,6 @@ public class Interpreter {
     private static String app(String func, String cond, String x, String y){
         return "(" + func + cond + x + y + ")";
     }
-
     public static void main(String[] args) {
         // write your code here
         String[] sources = {
