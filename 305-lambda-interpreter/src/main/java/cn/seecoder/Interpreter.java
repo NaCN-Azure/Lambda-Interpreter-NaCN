@@ -2,6 +2,7 @@ package cn.seecoder;
 public class Interpreter {
     Parser parser;
     AST astAfterParser;
+    int evalAST_times,shift_times,subst_times;
     public Interpreter(Parser p){
         parser = p;
         astAfterParser = p.parse();
@@ -20,51 +21,47 @@ public class Interpreter {
         return evalAST(astAfterParser);
     }
     private   AST evalAST(AST ast){
-        //write your code here
+        //具体收拢ast语法树的实现，分了很多种情况
+        evalAST_times++;
+        System.out.println("第"+evalAST_times+"次ast树："+ast);
         while (true) {
-            if (ast instanceof Application) {
-                if (((Application) ast).lhs instanceof Application) {
-                    System.out.println(("eval left:" + ((Application) ast).lhs));
-                    ((Application) ast).lhs = evalAST(((Application) ast).lhs);
-                    if (((Application) ast).lhs instanceof Application) {
+            if (isApplication(ast)) {//如果是应用ast
+                if (isApplication(((Application) ast).lhs)) {//ast左枝是应用的话
+                    System.out.println(("eval 左树:" + ((Application) ast).lhs));
+                    ((Application) ast).lhs = evalAST(((Application) ast).lhs);//对左枝进行递归应用的化简
+                    if (isApplication(((Application) ast).lhs)) {//左枝仍然是应用那么返回它，这样防止上一步以及下面的操作出现死栈溢出。
                         return ast;
                     }
-                    System.out.println("eval right:" + ast);
-                } else if (((Application)ast).lhs instanceof Abstraction) {
-                    if (((Application) ast).rhs instanceof Application) {
-                        ((Application) ast).rhs = evalAST((Application) ((Application) ast).rhs);
-                        System.out.println("eval right" + ast);
+                    System.out.println("eval 右树:" + ast);
+                } else if (isAbstraction(((Application) ast).lhs)) {//ast左枝是一个抽象
+                    if  (isApplication(((Application) ast).rhs)) {//右枝是一个应用的话
+                        ((Application) ast).rhs = evalAST((Application) ((Application) ast).rhs);//对右枝进行递归应用的化简
+                        System.out.println("eval 右树：" + ast);
                     }
-                    System.out.println("substi" + ast);
-                    ast = substitute(((Abstraction) ((Application) ast).lhs).body,((Application) ast).rhs);//ast不确定问题
-                    System.out.println("substi after" + ast);
-                } else {
-                    if (((Application) ast).rhs instanceof Application) {
-                        ((Application) ast).rhs = evalAST(((Application) ast).rhs);
-                        System.out.println("eval right" + ast);
-                        return ast;
-                    } else if (((Application) ast).rhs instanceof Abstraction) {
-                        ((Application) ast).rhs = evalAST(((Application) ast).rhs);
-                        System.out.println("eval right"+ast);
-                        return ast;
+                    System.out.println("替换之前：" + ast);
+                    ast = substitute(((Abstraction) ((Application) ast).lhs).body,((Application) ast).rhs);//右边的应用被应用于左边的抽象函数，替换
+                    System.out.println("替换之后：" + ast);
+                } else {//ast左枝是基本的identifier
+                    if ((isApplication(((Application) ast).rhs))||(isAbstraction(((Application) ast).rhs))){//右枝不是identifier
+                        ((Application) ast).rhs = evalAST(((Application) ast).rhs);//构造应用继续化简
+                        System.out.println("eval 右树：" + ast);
+                        return ast;//这里返回数值，已经化简到了最底层
                     } else {
-                        return ast;
+                        return ast;//否则返回，化简完毕
                     }
                 }
-            } else if (ast instanceof Abstraction) {
-                Abstraction abs = ((Abstraction)ast);
-                abs.body = evalAST(((Abstraction)abs).body);
-                System.out.println("abstraction" + ast);
+            } else if (isAbstraction(ast)) {//如果是抽象ast
+                Abstraction abs = ((Abstraction)ast);//根据该抽象新建一个abs（被去掉了最外面的一层的\.）
+                abs.body = evalAST(((Abstraction)abs).body);//抽象的递归化简
+                System.out.println("abstraction抽象：" + ast);
                 return ast;
-            }else if(ast instanceof Identifier){
-                System.out.println("Identifier"+ast);
+            }else{//如果只剩下identifier
+                System.out.println("Identifier值："+ast);//化简终了
                 return ast;
-            }else{
-                System.out.println("Bad!");
             }
         }
     }
-    private AST substitute(AST node,AST value){
+    private AST substitute(AST node,AST value){//substitute：替换操作，就是语法树的代入计算
         return shift(-1,subst(node,shift(1,value,0),0),0);
     }
     /**
@@ -78,18 +75,20 @@ public class Interpreter {
      *@return AST
      *@exception  (方法有异常的话加)
      */
-    private AST subst(AST node, AST value, int depth){
-        if(node instanceof Application){
+    private AST subst(AST node, AST value, int depth){//替换操作的具体实现
+        subst_times++;
+        System.out.println("node数值："+node);
+        if(isApplication(node)){
             return new Application(
                     subst(((Application) node).lhs,value,depth),
                     subst(((Application) node).rhs,value,depth)
             );
-        }else if(node instanceof Abstraction){
+        }else if(isAbstraction(node)){
             return new Abstraction(
                     (((Abstraction)node).param),
                     subst(((Abstraction)node).body,value,depth+1)
             );
-        }else if(node instanceof Identifier){
+        }else if(isIdentifier(node)){
             if(depth == ((Identifier)node).getInt()){
                 return shift(depth,value,0);
             }else{
@@ -110,26 +109,27 @@ public class Interpreter {
      *@return AST
      *@exception  (方法有异常的话加)
      */
-    private AST shift(int by, AST node,int from){
+    private AST shift(int by, AST node,int from){//shift方法通过不断递归寻找De Brui index从而实现贝塔规约
+        shift_times++;
         //write your code here
-        if(node instanceof Application){
+        System.out.print("shift操作,by:"+by+" from:"+from);
+        System.out.println("  shift操作,node:"+node);
+        if(isApplication(node)){
             return new Application(
                     shift(by,((Application) node).lhs,from),
                     shift(by,((Application) node).rhs,from)
             );
-        }else if (node instanceof Abstraction){
+        }else if (isAbstraction(node)){
             return new Abstraction(
                     (Identifier)((Abstraction) node).param,
                     shift(by,((Abstraction)node).body,from+1)
             );
-        }else if(node instanceof Identifier){
-            int temp;
-            temp = ((Identifier) node).getInt();
-            if(temp == -2){
-                return node;
-            }else{
-                return new Identifier("".toString(),String.valueOf(temp+(temp>=from?by:0)));
+        }else if(isIdentifier(node)){
+            int temp= ((Identifier) node).getInt();
+            if(temp>=from){
+                temp=temp+by;
             }
+            return new Identifier("".toString(),String.valueOf(temp));
         }
         return null;
     }
@@ -200,14 +200,15 @@ public class Interpreter {
                 app(MIN, ONE, TWO),//30
                 app(MIN, FOUR, TWO),//31
         };
-        for(int i=0 ; i<sources.length; i++) {
-            String source = sources[i];
-            System.out.println(i+":"+source);
+
+            String source = "(\\f.\\x.f x)(\\x.x)";
+            System.out.println("test:"+source);
             Lexer lexer = new Lexer(source);
             Parser parser = new Parser(lexer);
             Interpreter interpreter = new Interpreter(parser);
             AST result = interpreter.eval();
-            System.out.println(i+":" + result.toString());
-        }
+            System.out.println("调用evalAST:"+interpreter.evalAST_times+"次;"+"调用subti:"+interpreter.subst_times+"次;"+"调用shift:"+interpreter.shift_times+"次");
+            System.out.println("test:" + result.toString());
+
     }
 }
