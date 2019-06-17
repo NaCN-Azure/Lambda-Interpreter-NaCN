@@ -63,6 +63,9 @@ public class Interpreter {
     }
     private AST substitute(AST node,AST value){//substitute：替换操作，就是语法树的代入计算
         return shift(-1,subst(node,shift(1,value,0),0),0);
+        //shift(1,value,0)把内层相应自由变量移动+1位置
+        //subst(node,shift.....,0)将自由变量移动后的部分进行替换
+        //shift(-1,...)将整个部分的自由变量再降回来，这个是因为一层替换只需要将相应部分提高1，相当于删去一层lambda
     }
     /**
      *  value替换node节点中的变量：
@@ -75,22 +78,22 @@ public class Interpreter {
      *@return AST
      *@exception  (方法有异常的话加)
      */
-    private AST subst(AST node, AST value, int depth){//替换操作的具体实现
+    private AST subst(AST node, AST value, int depth){//替换操作的具体实现，node：ast树，value：数值，depth：外层深度
         subst_times++;
         System.out.println("node数值："+node);
         if(isApplication(node)){
             return new Application(
                     subst(((Application) node).lhs,value,depth),
                     subst(((Application) node).rhs,value,depth)
-            );
+            );//应用情况，向下传递
         }else if(isAbstraction(node)){
             return new Abstraction(
                     (((Abstraction)node).param),
                     subst(((Abstraction)node).body,value,depth+1)
-            );
+            );//抽象情况，param不变，body被替换且深度+1
         }else if(isIdentifier(node)){
             if(depth == ((Identifier)node).getInt()){
-                return shift(depth,value,0);
+                return shift(depth,value,0);//identifier，替换所有值为depth的变量，不改变其他，找到那个所有需要替换的部分，并且深度正确的部分
             }else{
                 return node;
             }
@@ -109,26 +112,26 @@ public class Interpreter {
      *@return AST
      *@exception  (方法有异常的话加)
      */
-    private AST shift(int by, AST node,int from){//shift方法通过不断递归寻找De Brui index从而实现贝塔规约
+    private AST shift(int by, AST node,int from){//shift方法通过不断递归寻找De Brui index从而实现贝塔规约，也就是位移寻找
+        //by：需要位移的距离，node：ast树，from：内层深度
         shift_times++;
-        //write your code here
         System.out.print("shift操作,by:"+by+" from:"+from);
         System.out.println("  shift操作,node:"+node);
         if(isApplication(node)){
             return new Application(
                     shift(by,((Application) node).lhs,from),
                     shift(by,((Application) node).rhs,from)
-            );
+            );//应用的情况，只需要分别向下传递
         }else if (isAbstraction(node)){
             return new Abstraction(
                     (Identifier)((Abstraction) node).param,
                     shift(by,((Abstraction)node).body,from+1)
-            );
-        }else if(isIdentifier(node)){
+            );//抽象的情况，替换body，from+1，from保存了内层的深度
+        }else if(isIdentifier(node)){//identifier的情况，新identifier是德布鲁因数值
             int temp= ((Identifier) node).getInt();
-            if(temp>=from){
+            if(temp>=from){//大于from（内层深度）要加by，字母不属于里面的东西
                 temp=temp+by;
-            }
+            }//否则不用加by
             return new Identifier("".toString(),String.valueOf(temp));
         }
         return null;
@@ -201,7 +204,7 @@ public class Interpreter {
                 app(MIN, FOUR, TWO),//31
         };
 
-            String source = "(\\f.\\x.f x)(\\x.x)";
+            String source = "(\\f.\\x.(x f)) d";
             System.out.println("test:"+source);
             Lexer lexer = new Lexer(source);
             Parser parser = new Parser(lexer);
